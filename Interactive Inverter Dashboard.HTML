@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Three Phase Low Voltage Hybrid Inverter Comparison</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <!-- 
+        Chosen Palette: Warm & welcoming
+        Application Structure Plan: The SPA is designed as an interactive dashboard for a sales manager, offering detailed comparisons across all technical specifications. The information architecture maintains the top-down approach with global filters and summary KPIs. The main content area is now heavily expanded and categorized into thematic sections: "Power & Performance", "PV Input Characteristics", "AC Output & Efficiency Insights", and "General Operating Parameters". Each of these sections uses a responsive grid to display multiple charts for quantitative data and dynamically updated text cards for qualitative or range-based data. This structure ensures all technical data points are presented visually or textually in an organized, digestible manner, facilitating exploration and understanding without a traditional table.
+
+        Visualization & Content Choices: 
+        - Report Info: Overall comparison -> Goal: Compare -> Viz/Presentation: Interactive Filters (Dropdowns) -> Interaction: Filter all charts and data -> Justification: Core interaction for user-driven analysis. Implemented with Vanilla JS.
+        - Report Info: Key performance specs -> Goal: Inform -> Viz/Presentation: Dynamic Stat Cards -> Interaction: Updates on filter change -> Justification: Provides immediate, high-level takeaways. Implemented with HTML/CSS/JS.
+        - Report Info: Power/Current Metrics -> Goal: Compare -> Viz/Presentation: Bar Charts (Chart.js) -> Justification: Ideal for direct comparison of primary power figures. Confirmed NO SVG.
+        - Report Info: Max PV Voltage, Max PV Input Current, Max PV Short Circuit Current -> Goal: Compare -> Viz/Presentation: Bar Charts (Chart.js) -> Justification: Clearly shows limits and capabilities of solar input. Confirmed NO SVG.
+        - Report Info: Max Apparent Power, THDi, Euro Efficiency -> Goal: Compare -> Viz/Presentation: Bar Charts (Chart.js) -> Justification: Visualizes crucial AC output quality and overall efficiency. Confirmed NO SVG.
+        - Report Info: Noise (dB), Max Operating Altitude (m), Standby Self-consumption (W), Switchover Time (ms) -> Goal: Compare -> Viz/Presentation: Bar Charts (Chart.js) -> Justification: Quantifies environmental and operational aspects. Confirmed NO SVG.
+        - Report Info: Battery Type, Voltage Range, Charging Strategy, PV Rated Voltage, MPPT Voltage Range, AC Rated Voltage, Rated Frequency, Power Factor Range, Protections, Cooling Type, Topology, Operating Temp Range, Humidity Range, Over Voltage Category, Communication Interface, Monitor Mode, Warranty -> Goal: Inform/Organize -> Viz/Presentation: Dynamic Text Cards/Lists -> Interaction: Updates on filter change -> Justification: These are best represented as concise text due to their descriptive or complex range nature, integrated into thematic sections for clarity. Implemented with HTML/CSS/JS.
+        CONFIRMATION: NO SVG graphics used. NO Mermaid JS used.
+    -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F4F1DE;
+            color: #3D405B;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .kpi-card {
+            background-color: white;
+            border-left: 5px solid #E07A5F;
+        }
+        .kpi-value {
+            color: #E07A5F;
+        }
+        .section-title {
+            color: #3D405B;
+        }
+        .filter-select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%233D405B'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3E%3C/svg%3E");
+        }
+        .data-card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="container mx-auto p-4 md:p-8">
+
+        <header class="text-center my-8">
+            <h1 class="text-4xl md:text-5xl font-black section-title">Three Phase Low Voltage Hybrid Inverter Comparison</h1>
+            <p class="mt-2 text-lg text-gray-600">Analyze and compare hybrid inverter specifications to find the perfect fit.</p>
+        </header>
+
+        <div class="sticky top-0 z-20 bg-[#F4F1DE]/80 backdrop-blur-sm py-4 mb-8">
+            <div class="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="brand-filter" class="block text-sm font-bold mb-1">Brand</label>
+                    <select id="brand-filter" class="filter-select w-full p-3 rounded-lg border-2 border-gray-300 bg-white shadow-sm appearance-none focus:outline-none focus:ring-2 focus:ring-[#E07A5F]">
+                        <option value="all">All Brands</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="power-filter" class="block text-sm font-bold mb-1">Power Rating (kW)</label>
+                    <select id="power-filter" class="filter-select w-full p-3 rounded-lg border-2 border-gray-300 bg-white shadow-sm appearance-none focus:outline-none focus:ring-2 focus:ring-[#E07A5F]">
+                        <option value="all">All Power Ratings</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <section id="kpi-section" class="mb-12">
+            <h2 class="text-3xl font-bold section-title mb-6 text-center">At a Glance: Top Performers</h2>
+             <p class="text-center text-gray-600 mb-6 -mt-4">Based on your current selection.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="kpi-card rounded-lg shadow-md p-6">
+                    <h3 class="font-bold text-gray-500">Max Efficiency</h3>
+                    <p id="kpi-efficiency-value" class="kpi-value text-4xl font-extrabold">--</p>
+                    <p id="kpi-efficiency-model" class="text-sm text-gray-500 font-semibold">--</p>
+                </div>
+                <div class="kpi-card rounded-lg shadow-md p-6">
+                    <h3 class="font-bold text-gray-500">Max PV Input</h3>
+                    <p id="kpi-pv-value" class="kpi-value text-4xl font-extrabold">--</p>
+                    <p id="kpi-pv-model" class="text-sm text-gray-500 font-semibold">--</p>
+                </div>
+                <div class="kpi-card rounded-lg shadow-md p-6">
+                    <h3 class="font-bold text-gray-500">Max Battery Current</h3>
+                    <p id="kpi-battery-value" class="kpi-value text-4xl font-extrabold">--</p>
+                    <p id="kpi-battery-model" class="text-sm text-gray-500 font-semibold">--</p>
+                </div>
+                 <div class="kpi-card rounded-lg shadow-md p-6">
+                    <h3 class="font-bold text-gray-500">Fastest Switchover</h3>
+                    <p id="kpi-switchover-value" class="kpi-value text-4xl font-extrabold">--</p>
+                    <p id="kpi-switchover-model" class="text-sm text-gray-500 font-semibold">--</p>
+                </div>
+            </div>
+        </section>
+
+        <main class="space-y-12 mb-12">
+            
+            <section id="power-performance" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="data-card">
+                    <h3 class="text-xl font-bold section-title mb-1">Rated AC Power Output</h3>
+                    <p class="text-sm text-gray-500 mb-4">Compares the continuous power supply capability.</p>
+                    <div class="chart-container">
+                        <canvas id="ratedPowerChart"></canvas>
+                    </div>
+                </div>
+                <div class="data-card">
+                    <h3 class="text-xl font-bold section-title mb-1">Max PV Input Power</h3>
+                    <p class="text-sm text-gray-500 mb-4">Indicates the maximum solar array size supported.</p>
+                    <div class="chart-container">
+                        <canvas id="pvInputChart"></canvas>
+                    </div>
+                </div>
+                <div class="data-card">
+                    <h3 class="text-xl font-bold section-title mb-1">Max Battery Charge/Discharge Current</h3>
+                    <p class="text-sm text-gray-500 mb-4">Higher values mean faster battery charging and more power on demand.</p>
+                    <div class="chart-container">
+                        <canvas id="batteryCurrentChart"></canvas>
+                    </div>
+                </div>
+                <div class="data-card">
+                    <h3 class="text-xl font-bold section-title mb-1">Efficiency Metrics</h3>
+                    <p class="text-sm text-gray-500 mb-4">Max and Euro efficiency ratings, crucial for overall system performance.</p>
+                    <div class="chart-container">
+                        <canvas id="efficiencyChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <section id="pv-battery-details" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="data-card">
+                    <h3 class="text-xl font-bold section-title mb-1">PV Input Details</h3>
+                    <p class="text-sm text-gray-500 mb-4">Explore maximum voltage, current, and MPPT configurations.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <div class="chart-container h-64">
+                            <canvas id="pvMaxVoltageChart"></canvas>
+                        </div>
+                        <div class="chart-container h-64">
+                            <canvas id="pvMaxInputCurrentChart"></canvas>
+                        </div>
+                        <div class="chart-container h-64">
+                            <canvas id="pvMaxShortCircuitCurrentChart"></canvas>
+                        </div>
+                        <div class="chart-container h-64">
+                            <canvas id="pvNumMpptsChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="mt-4 p-4 bg-gray-50 rounded-lg">
+                        <h4 class="font-semibold text-gray-700">PV Rated Voltage (V)</h4>
+                        <p id="pv-rated-voltage" class="text-gray-900"></p>
+                        <h4 class="font-semibold text-gray-700 mt-2">MPPT Voltage Range (V)</h4>
+                        <p id="pv-mppt-range" class="text-gray-900"></p>
+                    </div>
+                </div>
+                <div class="data-card">
+                    <h3 class="text-xl font-bold section-title mb-1">Battery System Details</h3>
+                    <p class="text-sm text-gray-500 mb-4">Information on battery compatibility, voltage, and charging strategies.</p>
+                    <div class="mt-4 p-4 bg-gray-50 rounded-lg">
+                        <h4 class="font-semibold text-gray-700">Battery Type</h4>
+                        <p id="battery-type" class="text-gray-900"></p>
+                        <h4 class="font-semibold text-gray-700 mt-2">Battery Voltage Range (V)</h4>
+                        <p id="battery-voltage-range" class="text-gray-900"></p>
+                        <h4 class="font-semibold text-gray-700 mt-2">Battery Charging Strategy</h4>
+                        <p id="battery-charging-strategy" class="text-gray-900"></p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="ac-output-insights" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="data-card">
+                    <h3 class="text-xl font-bold section-title mb-1">AC Output & Grid Interaction</h3>
+                    <p class="text-sm text-gray-500 mb-4">Key metrics for AC output power, harmonic distortion, and power factor.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <div class="chart-container h-64">
+                            <canvas id="acMaxApparentPowerChart"></canvas>
+                        </div>
+                        <div class="chart-container h-64">
+                            <canvas id="acThdiChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="mt-4 p-4 bg-gray-50 rounded-lg">
+                        <h4 class="font-semibold text-gray-700">Rated AC Output Voltage (V)</h4>
+                        <p id="ac-rated-voltage" class="text-gray-900"></p>
+                        <h4 class="font-semibold text-gray-700 mt-2">Rated AC Output Frequency (Hz)</h4>
+                        <p id="ac-rated-frequency" class="text-gray-900"></p>
+                        <h4 class="font-semibold text-gray-700 mt-2">Power Factor Range</h4>
+                        <p id="ac-power-factor-range" class="text-gray-900"></p>
+                    </div>
+                </div>
+                <div class="data-card">
+                    <h3 class="text-xl font-bold section-title mb-1">Protection & Safety Features</h3>
+                    <p class="text-sm text-gray-500 mb-4">Overview of integrated safety mechanisms ensuring reliable operation.</p>
+                    <div class="mt-4 p-4 bg-gray-50 rounded-lg">
+                        <h4 class="font-semibold text-gray-700">Protections</h4>
+                        <ul id="protections-list" class="list-disc list-inside text-gray-900"></ul>
+                    </div>
+                </div>
+            </section>
+
+            <section id="general-operating-parameters" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="data-card">
+                    <h3 class="text-xl font-bold section-title mb-1">Environmental & Physical Specs</h3>
+                    <p class="text-sm text-gray-500 mb-4">Details on noise levels, operating temperature, and physical robustness.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <div class="chart-container h-64">
+                            <canvas id="generalNoiseChart"></canvas>
+                        </div>
+                        <div class="chart-container h-64">
+                            <canvas id="generalAltitudeChart"></canvas>
+                        </div>
+                        <div class="chart-container h-64">
+                            <canvas id="generalSelfConsumptionChart"></canvas>
+                        </div>
+                        <div class="chart-container h-64">
+                            <canvas id="generalSwitchoverTimeChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="mt-4 p-4 bg-gray-50 rounded-lg">
+                        <h4 class="font-semibold text-gray-700">Cooling Type</h4>
+                        <p id="general-cooling-type" class="text-gray-900"></p>
+                        <h4 class="font-semibold text-gray-700 mt-2">Inverter Topology</h4>
+                        <p id="general-topology" class="text-gray-900"></p>
+                        <h4 class="font-semibold text-gray-700 mt-2">Operating Temperature Range (°C)</h4>
+                        <p id="general-temp-range" class="text-gray-900"></p>
+                        <h4 class="font-semibold text-gray-700 mt-2">Humidity Range (%)</h4>
+                        <p id="general-humidity-range" class="text-gray-900"></p>
+                        <h4 class="font-semibold text-gray-700 mt-2">Over Voltage Category</h4>
+                        <p id="general-overvoltage-category" class="text-gray-900"></p>
+                    </div>
+                </div>
+                <div class="data-card">
+                    <h3 class="text-xl font-bold section-title mb-1">Communication & Warranty</h3>
+                    <p class="text-sm text-gray-500 mb-4">Connectivity options and warranty period.</p>
+                    <div class="mt-4 p-4 bg-gray-50 rounded-lg">
+                        <h4 class="font-semibold text-gray-700">Communication Interface</h4>
+                        <p id="communication-interface" class="text-gray-900"></p>
+                        <h4 class="font-semibold text-gray-700 mt-2">Monitor Mode</h4>
+                        <p id="communication-monitor-mode" class="text-gray-900"></p>
+                        <h4 class="font-semibold text-gray-700 mt-2">Warranty (Years)</h4>
+                        <p id="warranty-years" class="text-gray-900"></p>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <div id="no-data-message" class="text-center text-gray-600 italic mt-6 hidden">No inverters match the current filters. Please adjust your selections.</div>
+
+        <footer class="text-center my-8 md:my-12">
+            <p class="text-gray-500">&copy; 2025 Sales Engineering Department. Data synthesized from manufacturer datasheets.</p>
+        </footer>
+
+    </div>
+
+    <script>
+        const inverters = [
+            // Deye SUN-3/4/5/6/8/10/12K-SG05LP3-EU-SM2
+            {
+                brand: "Deye", model: "SUN-3K-SG05LP3-EU-SM2", power: 3,
+                pvInput_maxPvPower_kWp: 4.5, pvInput_maxVoltage_V: 800, pvInput_ratedVoltage_V: "550", pvInput_numMppts: 2, pvInput_mpptVoltageRange_V: "200-650", pvInput_maxInputCurrent_A: 13, pvInput_maxShortCircuitCurrent_A: 17,
+                battery_type: "Lead-acid or Lithium-ion", battery_voltageRange_V: "40-60", battery_maxChargeCurrent_A: 70, battery_maxDischargeCurrent_A: 70, battery_chargingStrategy: "Self-adaption to BMS",
+                acOutput_ratedOutputPower_kW: 3, acOutput_maxApparentPower_VA: 3300, acOutput_ratedVoltage_V: "220/380V, 230/400V", acOutput_ratedFrequency_Hz: "50/45-55, 60/55-65", acOutput_thdi_percent: 3, acOutput_powerFactorRange: "0.8 leading to 0.8 lagging",
+                efficiency_max_percent: 97.6, efficiency_euro_percent: 97.0,
+                protections: ["DC Reverse Polarity", "AC Output Overcurrent", "Thermal Protection", "AC Output Overvoltage", "AC Output Short Circuit", "DC Component Monitoring", "Arc Fault Circuit Interrupter (optional)", "Anti-islanding Protection", "DC Switch", "Insulation Impedance Detection", "Residual Current Detection"],
+                general_noise_dB: 55, general_coolingType: "Intelligent Air Cooling", general_topology: "Non-Isolated", general_operatingTempRange_C: "-40 to +60", general_ipRating: "IP65", general_maxOperatingAltitude_m: 3000, general_humidityRange_percent: "0-100%", general_standbySelfConsumption_W: "N/A", general_switchoverTime_ms: "N/A", general_overVoltageCategory: "OVC II(DC), OVC III(AC)",
+                communication_interface: "RS485/RS232/CAN", communication_monitorMode: "GPRS/WIFI/Bluetooth/4G/LAN(optional)",
+                warranty_years: "5 Years/10 Years"
+            },
+            {
+                brand: "Deye", model: "SUN-4K-SG05LP3-EU-SM2", power: 4,
+                pvInput_maxPvPower_kWp: 6.4, pvInput_maxVoltage_V: 800, pvInput_ratedVoltage_V: "550", pvInput_numMppts: 2, pvInput_mpptVoltageRange_V: "200-650", pvInput_maxInputCurrent_A: 13, pvInput_maxShortCircuitCurrent_A: 17,
+                battery_type: "Lead-acid or Lithium-ion", battery_voltageRange_V: "40-60", battery_maxChargeCurrent_A: 95, battery_maxDischargeCurrent_A: 95, battery_chargingStrategy: "Self-adaption to BMS",
+                acOutput_ratedOutputPower_kW: 4, acOutput_maxApparentPower_VA: 4400, acOutput_ratedVoltage_V: "220/380V, 230/400V", acOutput_ratedFrequency_Hz: "50/45-55, 60/55-65", acOutput_thdi_percent: 3, acOutput_powerFactorRange: "0.8 leading to 0.8 lagging",
+                efficiency_max_percent: 97.6, efficiency_euro_percent: 97.0,
+                protections: ["DC Reverse Polarity", "AC Output Overcurrent", "Thermal Protection", "AC Output Overvoltage", "AC Output Short Circuit", "DC Component Monitoring", "Arc Fault Circuit Interrupter (optional)", "Anti-islanding Protection", "DC Switch", "Insulation Impedance Detection", "Residual Current Detection"],
+                general_noise_dB: 55, general_coolingType: "Intelligent Air Cooling", general_topology: "Non-Isolated", general_operatingTempRange_C: "-40 to +60", general_ipRating: "IP65", general_maxOperatingAltitude_m: 3000, general_humidityRange_percent: "0-100%", general_standbySelfConsumption_W: "N/A", general_switchoverTime_ms: "N/A", general_overVoltageCategory: "OVC II(DC), OVC III(AC)",
+                communication_interface: "RS485/RS232/CAN", communication_monitorMode: "GPRS/WIFI/Bluetooth/4G/LAN(optional)",
+                warranty_years: "5 Years/10 Years"
+            },
+            {
+                brand: "Deye", model: "SUN-5K-SG05LP3-EU-SM2", power: 5,
+                pvInput_maxPvPower_kWp: 8, pvInput_maxVoltage_V: 800, pvInput_ratedVoltage_V: "550", pvInput_numMppts: 2, pvInput_mpptVoltageRange_V: "200-650", pvInput_maxInputCurrent_A: 13, pvInput_maxShortCircuitCurrent_A: 17,
+                battery_type: "Lead-acid or Lithium-ion", battery_voltageRange_V: "40-60", battery_maxChargeCurrent_A: 135, battery_maxDischargeCurrent_A: 120, battery_chargingStrategy: "Self-adaption to BMS",
+                acOutput_ratedOutputPower_kW: 5, acOutput_maxApparentPower_VA: 6600, acOutput_ratedVoltage_V: "220/380V, 230/400V", acOutput_ratedFrequency_Hz: "50/45-55, 60/55-65", acOutput_thdi_percent: 3, acOutput_powerFactorRange: "0.8 leading to 0.8 lagging",
+                efficiency_max_percent: 97.6, efficiency_euro_percent: 97.0,
+                protections: ["DC Reverse Polarity", "AC Output Overcurrent", "Thermal Protection", "AC Output Overvoltage", "AC Output Short Circuit", "DC Component Monitoring", "Arc Fault Circuit Interrupter (optional)", "Anti-islanding Protection", "DC Switch", "Insulation Impedance Detection", "Residual Current Detection"],
+                general_noise_dB: 55, general_coolingType: "Intelligent Air Cooling", general_topology: "Non-Isolated", general_operatingTempRange_C: "-40 to +60", general_ipRating: "IP65", general_maxOperatingAltitude_m: 3000, general_humidityRange_percent: "0-100%", general_standbySelfConsumption_W: "N/A", general_switchoverTime_ms: "N/A", general_overVoltageCategory: "OVC II(DC), OVC III(AC)",
+                communication_interface: "RS485/RS232/CAN", communication_monitorMode: "GPRS/WIFI/Bluetooth/4G/LAN(optional)",
+                warranty_years: "5 Years/10 Years"
+            },
+            {
+                brand: "Deye", model: "SUN-6K-SG05LP3-EU-SM2", power: 6,
+                pvInput_maxPvPower_kWp: 9.6, pvInput_maxVoltage_V: 800, pvInput_ratedVoltage_V: "550", pvInput_numMppts: 2, pvInput_mpptVoltageRange_V: "200-650", pvInput_maxInputCurrent_A: 13, pvInput_maxShortCircuitCurrent_A: 17,
+                battery_type: "Lead-acid or Lithium-ion", battery_voltageRange_V: "40-60", battery_maxChargeCurrent_A: 120, battery_maxDischargeCurrent_A: 135, battery_chargingStrategy: "Self-adaption to BMS",
+                acOutput_ratedOutputPower_kW: 6, acOutput_maxApparentPower_VA: 6600, acOutput_ratedVoltage_V: "220/380V, 230/400V", acOutput_ratedFrequency_Hz: "50/45-55, 60/55-65", acOutput_thdi_percent: 3, acOutput_powerFactorRange: "0.8 leading to 0.8 lagging",
+                efficiency_max_percent: 97.6, efficiency_euro_percent: 97.0,
+                protections: ["DC Reverse Polarity", "AC Output Overcurrent", "Thermal Protection", "AC Output Overvoltage", "AC Output Short Circuit", "DC Component Monitoring", "Arc Fault Circuit Interrupter (optional)", "Anti-islanding Protection", "DC Switch", "Insulation Impedance Detection", "Residual Current Detection"],
+                general_noise_dB: 55, general_coolingType: "Intelligent Air Cooling", general_topology: "Non-Isolated", general_operatingTempRange_C: "-40 to +60", general_ipRating: "IP65", general_maxOperatingAltitude_m: 3000, general_humidityRange_percent: "0-100%", general_standbySelfConsumption_W: "N/A", general_switchoverTime_ms: "N/A", general_overVoltageCategory: "OVC II(DC), OVC III(AC)",
+                communication_interface: "RS485/RS232/CAN", communication_monitorMode: "GPRS/WIFI/Bluetooth/4G/LAN(optional)",
+                warranty_years: "5 Years/10 Years"
+            },
+            {
+                brand: "Deye", model: "SUN-8K-SG05LP3-EU-SM2", power: 8,
+                pvInput_maxPvPower_kWp: 12.8, pvInput_maxVoltage_V: 800, pvInput_ratedVoltage_V: "550", pvInput_numMppts: 2, pvInput_mpptVoltageRange_V: "200-650", pvInput_maxInputCurrent_A: 13, pvInput_maxShortCircuitCurrent_A: 17,
+                battery_type: "Lead-acid or Lithium-ion", battery_voltageRange_V: "40-60", battery_maxChargeCurrent_A: 190, battery_maxDischargeCurrent_A: 190, battery_chargingStrategy: "Self-adaption to BMS",
+                acOutput_ratedOutputPower_kW: 8, acOutput_maxApparentPower_VA: 8800, acOutput_ratedVoltage_V: "220/380V, 230/400V", acOutput_ratedFrequency_Hz: "50/45-55, 60/55-65", acOutput_thdi_percent: 3, acOutput_powerFactorRange: "0.8 leading to 0.8 lagging",
+                efficiency_max_percent: 97.6, efficiency_euro_percent: 97.0,
+                protections: ["DC Reverse Polarity", "AC Output Overcurrent", "Thermal Protection", "AC Output Overvoltage", "AC Output Short Circuit", "DC Component Monitoring", "Arc Fault Circuit Interrupter (optional)", "Anti-islanding Protection", "DC Switch", "Insulation Impedance Detection", "Residual Current Detection"],
+                general_noise_dB: 55, general_coolingType: "Intelligent Air Cooling", general_topology: "Non-Isolated", general_operatingTempRange_C: "-40 to +60", general_ipRating: "IP65", general_maxOperatingAltitude_m: 3000, general_humidityRange_percent: "0-100%", general_standbySelfConsumption_W: "N/A", general_switchoverTime_ms: "N/A", general_overVoltageCategory: "OVC II(DC), OVC III(AC)",
+                communication_interface: "RS485/RS232/CAN", communication_monitorMode: "GPRS/WIFI/Bluetooth/4G/LAN(optional)",
+                warranty_years: "5 Years/10 Years"
+            },
+            {
+                brand: "Deye", model: "SUN-10K-SG05LP3-EU-SM2", power: 10,
+                pvInput_maxPvPower_kWp: 16, pvInput_maxVoltage_V: 800, pvInput_ratedVoltage_V: "550", pvInput_numMppts: 2, pvInput_mpptVoltageRange_V: "200-650", pvInput_maxInputCurrent_A: 13, pvInput_maxShortCircuitCurrent_A: 17,
+                battery_type: "Lead-acid or Lithium-ion", battery_voltageRange_V: "40-60", battery_maxChargeCurrent_A: 210, battery_maxDischargeCurrent_A: 210, battery_chargingStrategy: "Self-adaption to BMS",
+                acOutput_ratedOutputPower_kW: 10, acOutput_maxApparentPower_VA: 11000, acOutput_ratedVoltage_V: "220/380V, 230/400V", acOutput_ratedFrequency_Hz: "50/45-55, 60/55-65", acOutput_thdi_percent: 3, acOutput_powerFactorRange: "0.8 leading to 0.8 lagging",
+                efficiency_max_percent: 97.6, efficiency_euro_percent: 97.0,
+                protections: ["DC Reverse Polarity", "AC Output Overcurrent", "Thermal Protection", "AC Output Overvoltage", "AC Output Short Circuit", "DC Component Monitoring", "Arc Fault Circuit Interrupter (optional)", "Anti-islanding Protection", "DC Switch", "Insulation Impedance Detection", "Residual Current Detection"],
+                general_noise_dB: 55, general_coolingType: "Intelligent Air Cooling", general_topology: "Non-Isolated", general_operatingTempRange_C: "-40 to +60", general_ipRating: "IP65", general_maxOperatingAltitude_m: 3000, general_humidityRange_percent: "0-100%", general_standbySelfConsumption_W: "N/A", general_switchoverTime_ms: "N/A", general_overVoltageCategory: "OVC II(DC), OVC III(AC)",
+                communication_interface: "RS485/RS232/CAN", communication_monitorMode: "GPRS/WIFI/Bluetooth/4G/LAN(optional)",
+                warranty_years: "5 Years/10 Years"
+            },
+            {
+                brand: "Deye", model: "SUN-12K-SG05LP3-EU-SM2", power: 12,
+                pvInput_maxPvPower_kWp: 19.2, pvInput_maxVoltage_V: 800, pvInput_ratedVoltage_V: "550", pvInput_numMppts: 2, pvInput_mpptVoltageRange_V: "200-650", pvInput_maxInputCurrent_A: 13, pvInput_maxShortCircuitCurrent_A: 17,
+                battery_type: "Lead-acid or Lithium-ion", battery_voltageRange_V: "40-60", battery_maxChargeCurrent_A: 240, battery_maxDischargeCurrent_A: 240, battery_chargingStrategy: "Self-adaption to BMS",
+                acOutput_ratedOutputPower_kW: 12, acOutput_maxApparentPower_VA: 13200, acOutput_ratedVoltage_V: "220/380V, 230/400V", acOutput_ratedFrequency_Hz: "50/45-55, 60/55-65", acOutput_thdi_percent: 3, acOutput_powerFactorRange: "0.8 leading to 0.8 lagging",
+                efficiency_max_percent: 97.6, efficiency_euro_percent: 97.0,
+                protections: ["DC Reverse Polarity", "AC Output Overcurrent", "Thermal Protection", "AC Output Overvoltage", "AC Output Short Circuit", "DC Component Monitoring", "Arc Fault Circuit Interrupter (optional)", "Anti-islanding Protection", "DC Switch", "Insulation Impedance Detection", "Residual Current Detection"],
+                general_noise_dB: 55, general_coolingType: "Intelligent Air Cooling", general_topology: "Non-Isolated", general_operatingTempRange_C: "-40 to +60", general_ipRating: "IP65", general_maxOperatingAltitude_m: 3000, general_humidityRange_percent: "0-100%", general_standbySelfConsumption_W: "N/A", general_switchoverTime_ms: "N/A", general_overVoltageCategory: "OVC II(DC), OVC III(AC)",
+                communication_interface: "RS485/RS232/CAN", communication_monitorMode: "GPRS/WIFI/Bluetooth/4G/LAN(optional)",
+                warranty_years: "5 Years/10 Years"
+            },
+            // Deye SUN-14/15/16/18/20K-SG05LP3-EU-SM2 (larger range)
+            {
+                brand: "Deye", model: "SUN-14K-SG05LP3-EU-SM2", power: 14,
+                pvInput_maxPvPower_kWp: 22.4, pvInput_maxVoltage_V: 800, pvInput_ratedVoltage_V: "550", pvInput_numMppts: 2, pvInput_mpptVoltageRange_V: "160-650", pvInput_maxInputCurrent_A: 13, pvInput_maxShortCircuitCurrent_A: 17,
+                battery_type: "Lead-acid or Lithium-ion", battery_voltageRange_V: "40-60", battery_maxChargeCurrent_A: 260, battery_maxDischargeCurrent_A: 260, battery_chargingStrategy: "Self-adaption to BMS",
+                acOutput_ratedOutputPower_kW: 14, acOutput_maxApparentPower_VA: 15400, acOutput_ratedVoltage_V: "220/380V, 230/400V", acOutput_ratedFrequency_Hz: "50/45-55, 60/55-65", acOutput_thdi_percent: 3, acOutput_powerFactorRange: "0.8 leading to 0.8 lagging",
+                efficiency_max_percent: 97.6, efficiency_euro_percent: 97.0,
+                protections: ["DC Reverse Polarity", "AC Output Overcurrent", "Thermal Protection", "AC Output Overvoltage", "AC Output Short Circuit", "DC Component Monitoring", "Arc Fault Circuit Interrupter (optional)", "Anti-islanding Protection", "DC Switch", "Insulation Impedance Detection", "Residual Current Detection"],
+                general_noise_dB: 60, general_coolingType: "Intelligent Air Cooling", general_topology: "Non-Isolated", general_operatingTempRange_C: "-40 to +60", general_ipRating: "IP65", general_maxOperatingAltitude_m: 3000, general_humidityRange_percent: "0-100%", general_standbySelfConsumption_W: "N/A", general_switchoverTime_ms: "N/A", general_overVoltageCategory: "OVC II(DC), OVC III(AC)",
+                communication_interface: "RS485/RS232/CAN", communication_monitorMode: "GPRS/WIFI/Bluetooth/4G/LAN(optional)",
+                warranty_years: "5 Years/10 Years"
+            },
+            {
+                brand: "Deye", model: "SUN-15K-SG05LP3-EU-SM2", power: 15,
+                pvInput_maxPvPower_kWp: 24, pvInput_maxVoltage_V: 800, pvInput_ratedVoltage_V: "550", pvInput_numMppts: 2, pvInput_mpptVoltageRange_V: "160-650", pvInput_maxInputCurrent_A: 13, pvInput_maxShortCircuitCurrent_A: 17,
+                battery_type: "Lead-acid or Lithium-ion", battery_voltageRange_V: "40-60", battery_maxChargeCurrent_A: 280, battery_maxDischargeCurrent_A: 280, battery_chargingStrategy: "Self-adaption to BMS",
+                acOutput_ratedOutputPower_kW: 15, acOutput_maxApparentPower_VA: 16500, acOutput_ratedVoltage_V: "220/380V, 230/400V", acOutput_ratedFrequency_Hz: "50/45-55, 60/55-65", acOutput_thdi_percent: 3, acOutput_powerFactorRange: "0.8 leading to 0.8 lagging",
+                efficiency_max_percent: 97.6, efficiency_euro_percent: 97.0,
+                protections: ["DC Reverse Polarity", "AC Output Overcurrent", "Thermal Protection", "AC Output Overvoltage", "AC Output Short Circuit", "DC Component Monitoring", "Arc Fault Circuit Interrupter (optional)", "Anti-islanding Protection", "DC Switch", "Insulation Impedance Detection", "Residual Current Detection"],
+                general_noise_dB: 60, general_coolingType: "Intelligent Air Cooling", general_topology: "Non-Isolated", general_operatingTempRange_C: "-40 to +60", general_ipRating: "IP65", general_maxOperatingAltitude_m: 3000, general_humidityRange_percent: "0-100%", general_standbySelfConsumption_W: "N/A", general_switchoverTime_ms: "N/A", general_overVoltageCategory: "OVC II(DC), OVC III(AC)",
+                communication_interface: "RS485/RS232/CAN", communication_monitorMode: "GPRS/WIFI/Bluetooth/4G/LAN(optional)",
+                warranty_years: "5 Years/10 Years"
+            },
+            {
+                brand: "Deye", model: "SUN-16K-SG05LP3-EU-SM2", power: 16,
+                pvInput_maxPvPower_kWp: 25.6, pvInput_maxVoltage_V: 800, pvInput_ratedVoltage_V: "550", pvInput_numMppts: 2, pvInput_mpptVoltageRange_V: "160-650", pvInput_maxInputCurrent_A: 13, pvInput_maxShortCircuitCurrent_A: 17,
+                battery_type: "Lead-acid or Lithium-ion", battery_voltageRange_V: "40-60", battery_maxChargeCurrent_A: 300, battery_maxDischargeCurrent_A: 300, battery_chargingStrategy: "Self-adaption to BMS",
+                acOutput_ratedOutputPower_kW: 16, acOutput_maxApparentPower_VA: 17600, acOutput_ratedVoltage_V: "220/380V, 230/400V", acOutput_ratedFrequency_Hz: "50/45-55, 60/55-65", acOutput_thdi_percent: 3, acOutput_powerFactorRange: "0.8 leading to 0.8 lagging",
+                efficiency_max_percent: 97.6, efficiency_euro_percent: 97.0,
+                protections: ["DC Reverse Polarity", "AC Output Overcurrent", "Thermal Protection", "AC Output Overvoltage", "AC Output Short Circuit", "DC Component Monitoring", "Arc Fault Circuit Interrupter (optional)", "Anti-islanding Protection", "DC Switch", "Insulation Impedance Detection", "Residual Current Detection"],
+                general_noise_dB: 60, general_coolingType: "Intelligent Air Cooling", general_topology: "Non-Isolated", general_operatingTempRange_C: "-40 to +60", general_ipRating: "IP65", general_maxOperatingAltitude_m: 3000, general_humidityRange_percent: "0-100%", general_standbySelfConsumption_W: "N/A", general_switchoverTime_ms: "N/A", general_overVoltageCategory: "OVC II(DC), OVC III(AC)",
+                communication_interface: "RS485/RS232/CAN", communication_monitorMode: "GPRS/WIFI/Bluetooth/4G/LAN(optional)",
+                warranty_years: "5 Years/10 Years"
+            },
+            {
+                brand: "Deye", model: "SUN-18K-SG05LP3-EU-SM2", power: 18,
+                pvInput_maxPvPower_kWp: 28.8, pvInput_maxVoltage_V: 800, pvInput_ratedVoltage_V: "550", pvInput_numMppts: 2, pvInput_mpptVoltageRange_V: "160-650", pvInput_maxInputCurrent_A: 13, pvInput_maxShortCircuitCurrent_A: 17,
+                battery_type: "Lead-acid or Lithium-ion", battery_voltageRange_V: "40-60", battery_maxChargeCurrent_A: 330, battery_maxDischargeCurrent_A: 330, battery_chargingStrategy: "Self-adaption to BMS",
+                acOutput_ratedOutputPower_kW: 18, acOutput_maxApparentPower_VA: 19800, acOutput_ratedVoltage_V: "220/380V, 230/400V", acOutput_ratedFrequency_Hz: "50/45-55, 60/55-65", acOutput_thdi_percent: 3, acOutput_powerFactorRange: "0.8 leading to 0.8 lagging",
+                efficiency_max_percent: 97.6, efficiency_euro_percent: 97.0,
+                protections: ["DC Reverse Polarity", "AC Output Overcurrent", "Thermal Protection", "AC Output Overvoltage", "AC Output Short Circuit", "DC Component Monitoring", "Arc Fault Circuit Interrupter (optional)", "Anti-islanding Protection", "DC Switch", "Insulation Impedance Detection", "Residual Current Detection"],
+                general_noise_dB: 60, general_coolingType: "Intelligent Air Cooling", general_topology: "Non-Isolated", general_operatingTempRange_C: "-40 to +60", general_ipRating: "IP65", general_maxOperatingAltitude_m: 3000, general_humidityRange_percent: "0-100%", general_standbySelfConsumption_W: "N/A", general_switchoverTime_ms: "N/A", general_overVoltageCategory: "OVC II(DC), OVC III(AC)",
+                communication_interface: "RS485/RS232/CAN", communication_monitorMode: "GPRS/WIFI/Bluetooth/4G/LAN(optional)",
+                warranty_years: "5 Years/10 Years"
+            },
+            {
+                brand: "Deye", model: "SUN-20K-SG05LP3-EU-SM2", power: 20,
+                pvInput_maxPvPower_kWp: 32, pvInput_maxVoltage_V: 800, pvInput_ratedVoltage_V: "550", pvInput_numMppts: 2, pvInput_mpptVoltageRange_V: "160-650", pvInput_maxInputCurrent_A: 13, pvInput_maxShortCircuitCurrent_A: 17,
+                battery_type: "Lead-acid or Lithium-ion", battery_voltageRange_V: "40-60", battery_maxChargeCurrent_A: 350, battery_maxDischargeCurrent_A: 350, battery_chargingStrategy: "Self-adaption to BMS",
+                acOutput_ratedOutputPower_kW: 20, acOutput_maxApparentPower_VA: 22000, acOutput_ratedVoltage_V: "220/380V, 230/400V", acOutput_ratedFrequency_Hz: "50/45-55, 60/55-65", acOutput_thdi_percent: 3, acOutput_powerFactorRange: "0.8 leading to 0.8 lagging",
+                efficiency_max_percent: 97.6, efficiency_euro_percent: 97.0,
+                protections: ["DC Reverse Polarity", "AC Output Overcurrent", "Thermal Protection", "AC Output Overvoltage", "AC Output Short Circuit", "DC Component Monitoring", "Arc Fault Circuit Interrupter (optional)", "Anti-islanding Protection", "DC Switch", "Insulation Impedance Detection", "Residual Current Detection"],
+                general_noise_dB: 60, general_coolingType: "Intelligent Air Cooling", general_topology: "Non-Isolated", general_operatingTempRange_C: "-40 to +60", general_ipRating: "IP65", general_maxOperatingAltitude_m: 3000, general_humidityRange_percent: "0-100%", general_standbySelfConsumption_W: "N/A", general_switchoverTime_ms: "N/A", general_overVoltageCategory: "OVC II(DC), OVC III(AC)",
+                communication_interface: "RS485/RS232/CAN", communication_monitorMode: "GPRS/WIFI/Bluetooth/4G/LAN(optional)",
+                warranty_years: "5 Years/10 Years"
+            },
+
+            // SOFAR HYD-8-20K-LT1
+            {
+                brand: "SOFAR", model: "HYD-8K-LT1", power: 8,
+                pvInput_maxPvPower_kWp: 16, pvInput_maxVoltage_V: 1000, pvInput_ratedVoltage_V: "600", pvInput_numMppts: 2, pvInput_mpptVoltageRange_V: "160-950", pvInput_maxInputCurrent_A: 40, pvInput_maxShortCircuitCurrent_A: 50,
+                battery_type: "Lead-acid or Lithium-ion", battery_voltageRange_V: "40-60", battery_maxChargeCurrent_A: 240, battery_maxDischargeCurrent_A: 160, battery_chargingStrategy: "BMS Communication RS485/CAN",
+                acOutput_ratedOutputPower_kW: 8, acOutput_maxApparentPower_VA: 8800, acOutput_ratedVoltage_V: "3N+PE, 380/400/415 Vac", acOutput_ratedFrequency_Hz: "50/60", acOutput_thdi_percent: 3, acOutput_powerFactorRange: "0.8 lagging-0.8 leading",
+                efficiency_max_percent: 97.6, efficiency_euro_percent: 97.0,
+                protections: ["DC Switch", "PV Reverse Connection Protection", "Battery Reverse Connection Protection", "Output Short Circuit Protection", "Output Overcurrent Protection", "Output Overvoltage Protection", "Insulation impedance Detection", "Residual Current Detection", "Anti-island Protection", "Surge Protection (PV Type II AC Type II)", "AI based AFCI protection (Optional)"],
+                general_noise_dB: "N/A", general_coolingType: "Intelligent Airflow", general_topology: "Non-Isolation", general_operatingTempRange_C: "-30 to +60", general_ipRating: "IP66", general_maxOperatingAltitude_m: 4000, general_humidityRange_percent: "5%-95%", general_standbySelfConsumption_W: 15, general_switchoverTime_ms: 4, general_overVoltageCategory: "AC IIL DC II",
+                communication_interface: "RS485, Optional WiFi/4G/LAN", communication_monitorMode: "N/A",
+                warranty_years: "N/A"
+            },
+            {
+                brand: "SOFAR", model: "HYD-10K-LTI", power: 10,
+                pvInput_maxPvPower_kWp: 20, pvInput_maxVoltage_V: 1000, pvInput_ratedVoltage_V: "600", pvInput_numMppts: 2, pvInput_mpptVoltageRange_V: "160-950", pvInput_maxInputCurrent_A: 40, pvInput_maxShortCircuitCurrent_A: 50,
+                battery_type: "Lead-acid or Lithium-ion", battery_voltageRange_V: "40-60", battery_maxChargeCurrent_A: 240, battery_maxDischargeCurrent_A: 200, battery_chargingStrategy: "BMS Communication RS485/CAN",
+                acOutput_ratedOutputPower_kW: 10, acOutput_maxApparentPower_VA: 11000, acOutput_ratedVoltage_V: "3N+PE, 380/400/415 Vac", acOutput_ratedFrequency_Hz: "50/60", acOutput_thdi_percent: 3, acOutput_powerFactorRange: "0.8 lagging-0.8 leading",
+                efficiency_max_percent: 97.6, efficiency_euro_percent: 97.0,
+                protections: ["DC Switch", "PV Reverse Connection Protection", "Battery Reverse Connection Protection", "Output Short Circuit Protection", "Output Overcurrent Protection", "Output Overvoltage Protection", "Insulation impedance Detection", "Residual Current Detection", "Anti-island Protection", "Surge Protection (PV Type II AC Type II)", "AI based AFCI protection (Optional)"],
+                general_noise_dB: "N/A", general_coolingType: "Intelligent Airflow", general_topology: "Non-Isolation", general_operatingTempRange_C: "-30 to +60", general_ipRating: "IP66", general_maxOperatingAltitude_m: 4000, general_humidityRange_percent: "5%-95%", general_standbySelfConsumption_W: 15, general_switchoverTime_ms: 4, general_overVoltageCategory: "AC IIL DC II",
+                communication_interface: "RS485, Optional WiFi/4G/LAN", communication_monitorMode: "N/A",
+                warranty_years: "N/A"
+            },
+            {
+                brand: "SOFAR", model: "HYD-12K-LTI", power: 12,
+                pvInput_maxPvPower_kWp: 24, pvInput_maxVoltage_V: 1000, pvInput_ratedVoltage_V: "600", pvInput_numMppts: 2, pvInput_mpptVoltageRange_V: "160-950", pvInput_maxInputCurrent_A: 40, pvInput_maxShortCircuitCurrent_A: 50,
+                battery_type: "Lead-acid or Lithium-ion", battery_voltageRange_V: "40-60", battery_maxChargeCurrent_A: 240, battery_maxDischargeCurrent_A: 240, battery_chargingStrategy: "BMS Communication RS485/CAN",
+                acOutput_ratedOutputPower_kW: 12, acOutput_maxApparentPower_VA: 13200, acOutput_ratedVoltage_V: "3N+PE, 380/400/415 Vac", acOutput_ratedFrequency_Hz: "50/60", acOutput_thdi_percent: 3, acOutput_powerFactorRange: "0.8 lagging-0.8 leading",
+                efficiency_max_percent: 97.6, efficiency_euro_percent: 97.0,
+                protections: ["DC Switch", "PV Reverse Connection Protection", "Battery Reverse Connection Protection", "Output Short Circuit Protection", "Output Overcurrent Protection", "Output Overvoltage Protection", "Insulation impedance Detection", "Residual Current Detection", "Anti-island Protection", "Surge Protection (PV Type II AC Type II)", "AI based AFCI protection (Optional)"],
+                general_noise_dB: "N/A", general_coolingType: "Intelligent Airflow", general_topology: "Non-Isolation", general_operatingTempRange_C: "-30 to +60", general_ipRating: "IP66", general_maxOperatingAltitude_m: 4000, general_humidityRange_percent: "5%-95%", general_standbySelfConsumption_W: 15, general_switchoverTime_ms: 4, general_overVoltageCategory: "AC IIL DC II",
+                communication_interface: "RS485, Optional WiFi/4G/LAN", communication_monitorMode: "N/A",
+                warranty_years: "N/A"
+            },
+            {
+                brand: "SOFAR", model: "HYD-15K-LT1", power: 15,
+                pvInput_maxPvPower_kWp: 30, pvInput_maxVoltage_V: 1000, pvInput_ratedVoltage_V: "600", pvInput_numMppts: 2, pvInput_mpptVoltageRange_V: "160-950", pvInput_maxInputCurrent_A: 40, pvInput_maxShortCircuitCurrent_A: 50,
+                battery_type: "Lead-acid or Lithium-ion", battery_voltageRange_V: "40-60", battery_maxChargeCurrent_A: 350, battery_maxDischargeCurrent_A: 300, battery_chargingStrategy: "BMS Communication RS485/CAN",
+                acOutput_ratedOutputPower_kW: 15, acOutput_maxApparentPower_VA: 16500, acOutput_ratedVoltage_V: "3N+PE, 380/400/415 Vac", acOutput_ratedFrequency_Hz: "50/60", acOutput_thdi_percent: 3, acOutput_powerFactorRange: "0.8 lagging-0.8 leading",
+                efficiency_max_percent: 97.6, efficiency_euro_percent: 97.0,
+                protections: ["DC Switch", "PV Reverse Connection Protection", "Battery Reverse Connection Protection", "Output Short Circuit Protection", "Output Overcurrent Protection", "Output Overvoltage Protection", "Insulation impedance Detection", "Residual Current Detection", "Anti-island Protection", "Surge Protection (PV Type II AC Type II)", "AI based AFCI protection (Optional)"],
+                general_noise_dB: "N/A", general_coolingType: "Intelligent Airflow", general_topology: "Non-Isolation", general_operatingTempRange_C: "-30 to +60", general_ipRating: "IP66", general_maxOperatingAltitude_m: 4000, general_humidityRange_percent: "5%-95%", general_standbySelfConsumption_W: 15, general_switchoverTime_ms: 4, general_overVoltageCategory: "AC IIL DC II",
+                communication_interface: "RS485, Optional WiFi/4G/LAN", communication_monitorMode: "N/A",
+                warranty_years: "N/A"
+            },
+            {
+                brand: "SOFAR", model: "HYD-20K-LT", power: 20,
+                pvInput_maxPvPower_kWp: 40, pvInput_maxVoltage_V: 1000, pvInput_ratedVoltage_V: "600", pvInput_numMppts: 2, pvInput_mpptVoltageRange_V: "160-950", pvInput_maxInputCurrent_A: 40, pvInput_maxShortCircuitCurrent_A: 50,
+                battery_type: "Lead-acid or Lithium-ion", battery_voltageRange_V: "40-60", battery_maxChargeCurrent_A: 350, battery_maxDischargeCurrent_A: 350, battery_chargingStrategy: "BMS Communication RS485/CAN",
+                acOutput_ratedOutputPower_kW: 20, acOutput_maxApparentPower_VA: 22000, acOutput_ratedVoltage_V: "3N+PE, 380/400/415 Vac", acOutput_ratedFrequency_Hz: "50/60", acOutput_thdi_percent: 3, acOutput_powerFactorRange: "0.8 lagging-0.8 leading",
+                efficiency_max_percent: 97.6, efficiency_euro_percent: 97.0,
+                protections: ["DC Switch", "PV Reverse Connection Protection", "Battery Reverse Connection Protection", "Output Short Circuit Protection", "Output Overcurrent Protection", "Output Overvoltage Protection", "Insulation impedance Detection", "Residual Current Detection", "Anti-island Protection", "Surge Protection (PV Type II AC Type II)", "AI based AFCI protection (Optional)"],
+                general_noise_dB: "N/A", general_coolingType: "Intelligent Airflow", general_topology: "Non-Isolation", general_operatingTempRange_C: "-30 to +60", general_ipRating: "IP66", general_maxOperatingAltitude_m: 4000, general_humidityRange_percent: "5%-95%", general_standbySelfConsumption_W: 15, general_switchoverTime_ms: 4, general_overVoltageCategory: "AC IIL DC II",
+                communication_interface: "RS485, Optional WiFi/4G/LAN", communication_monitorMode: "N/A",
+                warranty_years: "N/A"
+            },
+
+            // GoodWe ET LV Series
+            {
+                brand: "GoodWe", model: "GW5K-ET-L-G10", power: 5.5,
+                pvInput_maxPvPower_kWp: 10, pvInput_maxVoltage_V: 1000, pvInput_ratedVoltage_V: "620", pvInput_numMppts: 2, pvInput_mpptVoltageRange_V: "150-850", pvInput_maxInputCurrent_A: 20, pvInput_maxShortCircuitCurrent_A: 25,
+                battery_type: "LFP / Lead-acid", battery_voltageRange_V: "40-60", battery_maxChargeCurrent_A: 125, battery_maxDischargeCurrent_A: 125, battery_chargingStrategy: "BMS Communication CAN",
+                acOutput_ratedOutputPower_kW: 5, acOutput_maxApparentPower_VA: 5500, acOutput_ratedVoltage_V: "400/380 3L/N/PE", acOutput_ratedFrequency_Hz: "50/60", acOutput_thdi_percent: 3, acOutput_powerFactorRange: "1 (Adjustable from 0.8 leading-0.8 lagging)",
+                efficiency_max_percent: 97.8, efficiency_euro_percent: 97.0,
+                protections: ["PV String Current Monitoring", "PV Insulation Resistance Detection", "Residual Current Monitoring", "PV Reverse Polarity Protection (Optional)", "Battery Reverse Polarity Protection (Optional)", "Anti-islanding Protection (Integrated)", "AC Overcurrent Protection (Integrated)", "AC Short Circuit Protection (Integrated)", "Overvoltage Protection (Integrated)", "DC Switch (Integrated)", "DC Surge Protection (Type II)", "AC Surge Protection (Type II)", "AFCI (Optional)", "Rapid Shutdown (Optional)", "Remote Shutdown (Integrated)"],
+                general_noise_dB: 45, general_coolingType: "Smart Fan Cooling", general_topology: "N/A", general_operatingTempRange_C: "-35 to +60", general_ipRating: "IP66", general_maxOperatingAltitude_m: 4000, general_humidityRange_percent: "0-95%", general_standbySelfConsumption_W: 15, general_switchoverTime_ms: 4, general_overVoltageCategory: "N/A",
+                communication_interface: "WIFI/4G, RS485 CAN, LAN+Bluetooth", communication_monitorMode: "Modbus RTU (RS485) Modbus TCP/IP (Ethernet), Sunspec Modbus RTU",
+                warranty_years: "N/A"
+            },
+            {
+                brand: "GoodWe", model: "GW6K-ET-L-G10", power: 6,
+                pvInput_maxPvPower_kWp: 12, pvInput_maxVoltage_V: 1000, pvInput_ratedVoltage_V: "620", pvInput_numMppts: 2, pvInput_mpptVoltageRange_V: "150-850", pvInput_maxInputCurrent_A: 20, pvInput_maxShortCircuitCurrent_A: 25,
+                battery_type: "LFP / Lead-acid", battery_voltageRange_V: "40-60", battery_maxChargeCurrent_A: 135, battery_maxDischargeCurrent_A: 135, battery_chargingStrategy: "BMS Communication CAN",
+                acOutput_ratedOutputPower_kW: 6, acOutput_maxApparentPower_VA: 6600, acOutput_ratedVoltage_V: "400/380 3L/N/PE", acOutput_ratedFrequency_Hz: "50/60", acOutput_thdi_percent: 3, acOutput_powerFactorRange: "1 (Adjustable from 0.8 leading-0.8 lagging)",
+                efficiency_max_percent: 97.85, efficiency_euro_percent: 97.0,
+                protections: ["PV String Current Monitoring", "PV Insulation Resistance Detection", "Residual Current Monitoring", "PV Reverse Polarity Protection (Optional)", "Battery Reverse Polarity Protection (Optional)", "Anti-islanding Protection (Integrated)", "AC Overcurrent Protection (Integrated)", "AC Short Circuit Protection (Integrated)", "Overvoltage Protection (Integrated)", "DC Switch (Integrated)", "DC Surge Protection (Type II)", "AC Surge Protection (Type II)", "AFCI (Optional)", "Rapid Shutdown (Optional)", "Remote Shutdown (Integrated)"],
+                general_noise_dB: 45, general_coolingType: "Smart Fan Cooling", general_topology: "N/A", general_operatingTempRange_C: "-35 to +60", general_ipRating: "IP66", general_maxOperatingAltitude_m: 4000, general_humidityRange_percent: "0-95%", general_standbySelfConsumption_W: 15, general_switchoverTime_ms: 4, general_overVoltageCategory: "N/A",
+                communication_interface: "WIFI/4G, RS485 CAN, LAN+Bluetooth", communication_monitorMode: "Modbus RTU (RS485) Modbus TCP/IP (Ethernet), Sunspec Modbus RTU",
+                warranty_years: "N/A"
+            },
+            {
+                brand: "GoodWe", model: "GW8K-ET-L-G10", power: 8,
+                pvInput_maxPvPower_kWp: 16, pvInput_maxVoltage_V: 1000, pvInput_ratedVoltage_V: "620", pvInput_numMppts: 2, pvInput_mpptVoltageRange_V: "150-850", pvInput_maxInputCurrent_A: 20, pvInput_maxShortCircuitCurrent_A: 25,
+                battery_type: "LFP / Lead-acid", battery_voltageRange_V: "40-60", battery_maxChargeCurrent_A: 175, battery_maxDischargeCurrent_A: 175, battery_chargingStrategy: "BMS Communication CAN",
+                acOutput_ratedOutputPower_kW: 8, acOutput_maxApparentPower_VA: 8800, acOutput_ratedVoltage_V: "400/380 3L/N/PE", acOutput_ratedFrequency_Hz: "50/60", acOutput_thdi_percent: 3, acOutput_powerFactorRange: "1 (Adjustable from 0.8 leading-0.8 lagging)",
+                efficiency_max_percent: 97.8, efficiency_euro_percent: 97.3,
+                protections: ["PV String Current Monitoring", "PV Insulation Resistance Detection", "Residual Current Monitoring", "PV Reverse Polarity Protection (Optional)", "Battery Reverse Polarity Protection (Optional)", "Anti-islanding Protection (Integrated)", "AC Overcurrent Protection (Integrated)", "AC Short Circuit Protection (Integrated)", "Overvoltage Protection (Integrated)", "DC Switch (Integrated)", "DC Surge Protection (Type II)", "AC Surge Protection (Type II)", "AFCI (Optional)", "Rapid Shutdown (Optional)", "Remote Shutdown (Integrated)"],
+                general_noise_dB: 45, general_coolingType: "Smart Fan Cooling", general_topology: "N/A", general_operatingTempRange_C: "-35 to +60", general_ipRating: "IP66", general_maxOperatingAltitude_m: 4000, general_humidityRange_percent: "0-95%", general_standbySelfConsumption_W: 15, general_switchoverTime_ms: 4, general_overVoltageCategory: "N/A",
+                communication_interface: "WIFI/4G, RS485 CAN, LAN+Bluetooth", communication_monitorMode: "Modbus RTU (RS485) Modbus TCP/IP (Ethernet), Sunspec Modbus RTU",
+                warranty_years: "N/A"
+            },
+            {
+                brand: "GoodWe", model: "GW10K-ET-L-G10", power: 10,
+                pvInput_maxPvPower_kWp: 20, pvInput_maxVoltage_V: 1000, pvInput_ratedVoltage_V: "620", pvInput_numMppts: 3, pvInput_mpptVoltageRange_V: "150-850", pvInput_maxInputCurrent_A: 20, pvInput_maxShortCircuitCurrent_A: 25,
+                battery_type: "LFP / Lead-acid", battery_voltageRange_V: "40-60", battery_maxChargeCurrent_A: 220, battery_maxDischargeCurrent_A: 220, battery_chargingStrategy: "BMS Communication CAN",
+                acOutput_ratedOutputPower_kW: 10, acOutput_maxApparentPower_VA: 11000, acOutput_ratedVoltage_V: "400/380 3L/N/PE", acOutput_ratedFrequency_Hz: "50/60", acOutput_thdi_percent: 3, acOutput_powerFactorRange: "1 (Adjustable from 0.8 leading-0.8 lagging)",
+                efficiency_max_percent: 97.8, efficiency_euro_percent: 97.1,
+                protections: ["PV String Current Monitoring", "PV Insulation Resistance Detection", "Residual Current Monitoring", "PV Reverse Polarity Protection (Optional)", "Battery Reverse Polarity Protection (Optional)", "Anti-islanding Protection (Integrated)", "AC Overcurrent Protection (Integrated)", "AC Short Circuit Protection (Integrated)", "Overvoltage Protection (Integrated)", "DC Switch (Integrated)", "DC Surge Protection (Type II)", "AC Surge Protection (Type II)", "AFCI (Optional)", "Rapid Shutdown (Optional)", "Remote Shutdown (Integrated)"],
+                general_noise_dB: 45, general_coolingType: "Smart Fan Cooling", general_topology: "N/A", general_operatingTempRange_C: "-35 to +60", general_ipRating: "IP66", general_maxOperatingAltitude_m: 4000, general_humidityRange_percent: "0-95%", general_standbySelfConsumption_W: 15, general_switchoverTime_ms: 4, general_overVoltageCategory: "N/A",
+                communication_interface: "WIFI/4G, RS485 CAN, LAN+Bluetooth", communication_monitorMode: "Modbus RTU (RS485) Modbus TCP/IP (Ethernet), Sunspec Modbus RTU",
+                warranty_years: "N/A"
+            },
+            {
+                brand: "GoodWe", model: "GW12K-ET-L-G10", power: 12,
+                pvInput_maxPvPower_kWp: 24, pvInput_maxVoltage_V: 1000, pvInput_ratedVoltage_V: "620", pvInput_numMppts: 3, pvInput_mpptVoltageRange_V: "150-850", pvInput_maxInputCurrent_A: 20, pvInput_maxShortCircuitCurrent_A: 25,
+                battery_type: "LFP / Lead-acid", battery_voltageRange_V: "40-60", battery_maxChargeCurrent_A: 250, battery_maxDischargeCurrent_A: 250, battery_chargingStrategy: "BMS Communication CAN",
+                acOutput_ratedOutputPower_kW: 12, acOutput_maxApparentPower_VA: 13200, acOutput_ratedVoltage_V: "400/380 3L/N/PE", acOutput_ratedFrequency_Hz: "50/60", acOutput_thdi_percent: 3, acOutput_powerFactorRange: "1 (Adjustable from 0.8 leading-0.8 lagging)",
+                efficiency_max_percent: 97.8, efficiency_euro_percent: 97.3,
+                protections: ["PV String Current Monitoring", "PV Insulation Resistance Detection", "Residual Current Monitoring", "PV Reverse Polarity Protection (Optional)", "Battery Reverse Polarity Protection (Optional)", "Anti-islanding Protection (Integrated)", "AC Overcurrent Protection (Integrated)", "AC Short Circuit Protection (Integrated)", "Overvoltage Protection (Integrated)", "DC Switch (Integrated)", "DC Surge Protection (Type II)", "AC Surge Protection (Type II)", "AFCI (Optional)", "Rapid Shutdown (Optional)", "Remote Shutdown (Integrated)"],
+                general_noise_dB: 45, general_coolingType: "Smart Fan Cooling", general_topology: "N/A", general_operatingTempRange_C: "-35 to +60", general_ipRating: "IP66", general_maxOperatingAltitude_m: 4000, general_humidityRange_percent: "0-95%", general_standbySelfConsumption_W: 15, general_switchoverTime_ms: 4, general_overVoltageCategory: "N/A",
+                communication_interface: "WIFI/4G, RS485 CAN, LAN+Bluetooth", communication_monitorMode: "Modbus RTU (RS485) Modbus TCP/IP (Ethernet), Sunspec Modbus RTU",
+                warranty_years: "N/A"
+            },
+            {
+                brand: "GoodWe", model: "GW15K-ET-L-G10", power: 15,
+                pvInput_maxPvPower_kWp: 30, pvInput_maxVoltage_V: 1000, pvInput_ratedVoltage_V: "620", pvInput_numMppts: 4, pvInput_mpptVoltageRange_V: "150-850", pvInput_maxInputCurrent_A: 20, pvInput_maxShortCircuitCurrent_A: 25,
+                battery_type: "LFP / Lead-acid", battery_voltageRange_V: "40-60", battery_maxChargeCurrent_A: 165, battery_maxDischargeCurrent_A: 165, battery_chargingStrategy: "BMS Communication CAN",
+                acOutput_ratedOutputPower_kW: 15, acOutput_maxApparentPower_VA: 16500, acOutput_ratedVoltage_V: "400/380 3L/N/PE", acOutput_ratedFrequency_Hz: "50/60", acOutput_thdi_percent: 3, acOutput_powerFactorRange: "1 (Adjustable from 0.8 leading-0.8 lagging)",
+                efficiency_max_percent: 97.9, efficiency_euro_percent: 97.3,
+                protections: ["PV String Current Monitoring", "PV Insulation Resistance Detection", "Residual Current Monitoring", "PV Reverse Polarity Protection (Optional)", "Battery Reverse Polarity Protection (Optional)", "Anti-islanding Protection (Integrated)", "AC Overcurrent Protection (Integrated)", "AC Short Circuit Protection (Integrated)", "Overvoltage Protection (Integrated)", "DC Switch (Integrated)", "DC Surge Protection (Type II)", "AC Surge Protection (Type II)", "AFCI (Optional)", "Rapid Shutdown (Optional)", "Remote Shutdown (Integrated)"],
+                general_noise_dB: 45, general_coolingType: "Smart Fan Cooling", general_topology: "N/A", general_operatingTempRange_C: "-35 to +60", general_ipRating: "IP66", general_maxOperatingAltitude_m: 4000, general_humidityRange_percent: "0-95%", general_standbySelfConsumption_W: 15, general_switchoverTime_ms: 4, general_overVoltageCategory: "N/A",
+                communication_interface: "WIFI/4G, RS485 CAN, LAN+Bluetooth", communication_monitorMode: "Modbus RTU (RS485) Modbus TCP/IP (Ethernet), Sunspec Modbus RTU",
+                warranty_years: "N/A"
+            },
+            {
+                brand: "GoodWe", model: "GW20K-ET-L-G10", power: 20,
+                pvInput_maxPvPower_kWp: 40, pvInput_maxVoltage_V: 1000, pvInput_ratedVoltage_V: "620", pvInput_numMppts: 4, pvInput_mpptVoltageRange_V: "150-850", pvInput_maxInputCurrent_A: 20, pvInput_maxShortCircuitCurrent_A: 25,
+                battery_type: "LFP / Lead-acid", battery_voltageRange_V: "40-60", battery_maxChargeCurrent_A: 208, battery_maxDischargeCurrent_A: 208, battery_chargingStrategy: "BMS Communication CAN",
+                acOutput_ratedOutputPower_kW: 20, acOutput_maxApparentPower_VA: 22000, acOutput_ratedVoltage_V: "400/380 3L/N/PE", acOutput_ratedFrequency_Hz: "50/60", acOutput_thdi_percent: 3, acOutput_powerFactorRange: "1 (Adjustable from 0.8 leading-0.8 lagging)",
+                efficiency_max_percent: 97.8, efficiency_euro_percent: 97.4,
+                protections: ["PV String Current Monitoring", "PV Insulation Resistance Detection", "Residual Current Monitoring", "PV Reverse Polarity Protection (Optional)", "Battery Reverse Polarity Protection (Optional)", "Anti-islanding Protection (Integrated)", "AC Overcurrent Protection (Integrated)", "AC Short Circuit Protection (Integrated)", "Overvoltage Protection (Integrated)", "DC Switch (Integrated)", "DC Surge Protection (Type II)", "AC Surge Protection (Type II)", "AFCI (Optional)", "Rapid Shutdown (Optional)", "Remote Shutdown (Integrated)"],
+                general_noise_dB: 45, general_coolingType: "Smart Fan Cooling", general_topology: "N/A", general_operatingTempRange_C: "-35 to +60", general_ipRating: "IP66", general_maxOperatingAltitude_m: 4000, general_humidityRange_percent: "0-95%", general_standbySelfConsumption_W: 15, general_switchoverTime_ms: 4, general_overVoltageCategory: "N/A",
+                communication_interface: "WIFI/4G, RS485 CAN, LAN+Bluetooth", communication_monitorMode: "Modbus RTU (RS485) Modbus TCP/IP (Ethernet), Sunspec Modbus RTU",
+                warranty_years: "N/A"
+            },
+
+            // SolaX X3-NEO-LV
+            {
+                brand: "SolaX", model: "X3-NEO-5K-LV", power: 5,
+                pvInput_maxPvPower_kWp: 10, pvInput_maxVoltage_V: 1000, pvInput_ratedVoltage_V: "640", pvInput_numMppts: 2, pvInput_mpptVoltageRange_V: "160-950", pvInput_maxInputCurrent_A: 36, pvInput_maxShortCircuitCurrent_A: "N/A",
+                battery_type: "LFP/Lead-acid", battery_voltageRange_V: "40-60", battery_maxChargeCurrent_A: 125, battery_maxDischargeCurrent_A: 125, battery_chargingStrategy: "N/A",
+                acOutput_ratedOutputPower_kW: 5, acOutput_maxApparentPower_VA: 5500, acOutput_ratedVoltage_V: "3W/N/PE, 220/380 V, 230/400 V, 240/415 V", acOutput_ratedFrequency_Hz: "50/60", acOutput_thdi_percent: 3, acOutput_powerFactorRange: "~1 (0.8 lagging to 0.8 leading)",
+                efficiency_max_percent: 97.6, efficiency_euro_percent: 97.0,
+                protections: ["Over/under voltage protection", "DC isolation protection", "DC reverse-polarity protection", "Grid monitoring", "DC injection monitoring", "Back feed current monitoring", "Residual current detection", "Over temperature protection", "Active anti-islanding (Frequency shift)", "Surge protection (DC: Type II AC: Type II)", "Arc-fault circuit interrupter (AFCI) (Optional)"],
+                general_noise_dB: "N/A", general_coolingType: "Natural cooling", general_topology: "Non-isolated for PV side/HF for battery side", general_operatingTempRange_C: "-25 to +60", general_ipRating: "IP65", general_maxOperatingAltitude_m: 3000, general_humidityRange_percent: "4~100% RH (condensing)", general_standbySelfConsumption_W: "N/A", general_switchoverTime_ms: 3, general_overVoltageCategory: "Mains: III, Battery. II, PVI",
+                communication_interface: "RS485, CAN, USB, DI/DO", communication_monitorMode: "LCD",
+                warranty_years: "N/A"
+            },
+            {
+                brand: "SolaX", model: "X3-NEO-8K-LV", power: 8,
+                pvInput_maxPvPower_kWp: 16, pvInput_maxVoltage_V: 1000, pvInput_ratedVoltage_V: "640", pvInput_numMppts: 2, pvInput_mpptVoltageRange_V: "160-950", pvInput_maxInputCurrent_A: 36, pvInput_maxShortCircuitCurrent_A: "N/A",
+                battery_type: "LFP/Lead-acid", battery_voltageRange_V: "40-60", battery_maxChargeCurrent_A: 200, battery_maxDischargeCurrent_A: 200, battery_chargingStrategy: "N/A",
+                acOutput_ratedOutputPower_kW: 8, acOutput_maxApparentPower_VA: 8800, acOutput_ratedVoltage_V: "3W/N/PE, 220/380 V, 230/400 V, 240/415 V", acOutput_ratedFrequency_Hz: "50/60", acOutput_thdi_percent: 3, acOutput_powerFactorRange: "~1 (0.8 lagging to 0.8 leading)",
+                efficiency_max_percent: 97.6, efficiency_euro_percent: 97.0,
+                protections: ["Over/under voltage protection", "DC isolation protection", "DC reverse-polarity protection", "Grid monitoring", "DC injection monitoring", "Back feed current monitoring", "Residual current detection", "Over temperature protection", "Active anti-islanding (Frequency shift)", "Surge protection (DC: Type II AC: Type II)", "Arc-fault circuit interrupter (AFCI) (Optional)"],
+                general_noise_dB: "N/A", general_coolingType: "Natural cooling", general_topology: "Non-isolated for PV side/HF for battery side", general_operatingTempRange_C: "-25 to +60", general_ipRating: "IP65", general_maxOperatingAltitude_m: 3000, general_humidityRange_percent: "4~100% RH (condensing)", general_standbySelfConsumption_W: "N/A", general_switchoverTime_ms: 3, general_overVoltageCategory: "Mains: III, Battery. II, PVI",
+                communication_interface: "RS485, CAN, USB, DI/DO", communication_monitorMode: "LCD",
+                warranty_years: "N/A"
+            },
+            {
+                brand: "SolaX", model: "X3-NEO-10K-LV", power: 10,
+                pvInput_maxPvPower_kWp: 20, pvInput_maxVoltage_V: 1000, pvInput_ratedVoltage_V: "640", pvInput_numMppts: 2, pvInput_mpptVoltageRange_V: "160-950", pvInput_maxInputCurrent_A: 36, pvInput_maxShortCircuitCurrent_A: "N/A",
+                battery_type: "LFP/Lead-acid", battery_voltageRange_V: "40-60", battery_maxChargeCurrent_A: 250, battery_maxDischargeCurrent_A: 250, battery_chargingStrategy: "N/A",
+                acOutput_ratedOutputPower_kW: 10, acOutput_maxApparentPower_VA: 11000, acOutput_ratedVoltage_V: "3W/N/PE, 220/380 V, 230/400 V, 240/415 V", acOutput_ratedFrequency_Hz: "50/60", acOutput_thdi_percent: 3, acOutput_powerFactorRange: "~1 (0.8 lagging to 0.8 leading)",
+                efficiency_max_percent: 97.6, efficiency_euro_percent: 97.0,
+                protections: ["Over/under voltage protection", "DC isolation protection", "DC reverse-polarity protection", "Grid monitoring", "DC injection monitoring", "Back feed current monitoring", "Residual current detection", "Over temperature protection", "Active anti-islanding (Frequency shift)", "Surge protection (DC: Type II AC: Type II)", "Arc-fault circuit interrupter (AFCI) (Optional)"],
+                general_noise_dB: "N/A", general_coolingType: "Smart air cooling", general_topology: "Non-isolated for PV side/HF for battery side", general_operatingTempRange_C: "-25 to +60", general_ipRating: "IP65", general_maxOperatingAltitude_m: 3000, general_humidityRange_percent: "4~100% RH (condensing)", general_standbySelfConsumption_W: "N/A", general_switchoverTime_ms: 3, general_overVoltageCategory: "Mains: III, Battery. II, PVI",
+                communication_interface: "RS485, CAN, USB, DI/DO", communication_monitorMode: "LCD",
+                warranty_years: "N/A"
+            },
+            {
+                brand: "SolaX", model: "X3-NEO-12K-LV", power: 12,
+                pvInput_maxPvPower_kWp: 24, pvInput_maxVoltage_V: 1000, pvInput_ratedVoltage_V: "640", pvInput_numMppts: 2, pvInput_mpptVoltageRange_V: "160-950", pvInput_maxInputCurrent_A: 36, pvInput_maxShortCircuitCurrent_A: "N/A",
+                battery_type: "LFP/Lead-acid", battery_voltageRange_V: "40-60", battery_maxChargeCurrent_A: 280, battery_maxDischargeCurrent_A: 280, battery_chargingStrategy: "N/A",
+                acOutput_ratedOutputPower_kW: 12, acOutput_maxApparentPower_VA: 13200, acOutput_ratedVoltage_V: "3W/N/PE, 220/380 V, 230/400 V, 240/415 V", acOutput_ratedFrequency_Hz: "50/60", acOutput_thdi_percent: 3, acOutput_powerFactorRange: "~1 (0.8 lagging to 0.8 leading)",
+                efficiency_max_percent: 97.6, efficiency_euro_percent: 97.0,
+                protections: ["Over/under voltage protection", "DC isolation protection", "DC reverse-polarity protection", "Grid monitoring", "DC injection monitoring", "Back feed current monitoring", "Residual current detection", "Over temperature protection", "Active anti-islanding (Frequency shift)", "Surge protection (DC: Type II AC: Type II)", "Arc-fault circuit interrupter (AFCI) (Optional)"],
+                general_noise_dB: "N/A", general_coolingType: "Smart air cooling", general_topology: "Non-isolated for PV side/HF for battery side", general_operatingTempRange_C: "-25 to +60", general_ipRating: "IP65", general_maxOperatingAltitude_m: 3000, general_humidityRange_percent: "4~100% RH (condensing)", general_standbySelfConsumption_W: "N/A", general_switchoverTime_ms: 3, general_overVoltageCategory: "Mains: III, Battery. II, PVI",
+                communication_interface: "RS485, CAN, USB, DI/DO", communication_monitorMode: "LCD",
+                warranty_years: "N/A"
+            },
+            {
+                brand: "SolaX", model: "X3-NEO-15K-LV", power: 15,
+                pvInput_maxPvPower_kWp: 30, pvInput_maxVoltage_V: 1000, pvInput_ratedVoltage_V: "640", pvInput_numMppts: 2, pvInput_mpptVoltageRange_V: "160-950", pvInput_maxInputCurrent_A: 36, pvInput_maxShortCircuitCurrent_A: "N/A",
+                battery_type: "LFP/Lead-acid", battery_voltageRange_V: "40-60", battery_maxChargeCurrent_A: 300, battery_maxDischargeCurrent_A: 300, battery_chargingStrategy: "N/A",
+                acOutput_ratedOutputPower_kW: 15, acOutput_maxApparentPower_VA: 16500, acOutput_ratedVoltage_V: "3W/N/PE, 220/380 V, 230/400 V, 240/415 V", acOutput_ratedFrequency_Hz: "50/60", acOutput_thdi_percent: 3, acOutput_powerFactorRange: "~1 (0.8 lagging to 0.8 leading)",
+                efficiency_max_percent: 97.6, efficiency_euro_percent: 97.0,
+                protections: ["Over/under voltage protection", "DC isolation protection", "DC reverse-polarity protection", "Grid monitoring", "DC injection monitoring", "Back feed current monitoring", "Residual current detection", "Over temperature protection", "Active anti-islanding (Frequency shift)", "Surge protection (DC: Type II AC: Type II)", "Arc-fault circuit interrupter (AFCI) (Optional)"],
+                general_noise_dB: "N/A", general_coolingType: "Smart air cooling", general_topology: "Non-isolated for PV side/HF for battery side", general_operatingTempRange_C: "-25 to +60", general_ipRating: "IP65", general_maxOperatingAltitude_m: 3000, general_humidityRange_percent: "4~100% RH (condensing)", general_standbySelfConsumption_W: "N/A", general_switchoverTime_ms: 3, general_overVoltageCategory: "Mains: III, Battery. II, PVI",
+                communication_interface: "RS485, CAN, USB, DI/DO", communication_monitorMode: "LCD",
+                warranty_years: "N/A"
+            },
+            {
+                brand: "SolaX", model: "X3-NEO-20K-LV", power: 20,
+                pvInput_maxPvPower_kWp: 40, pvInput_maxVoltage_V: 1000, pvInput_ratedVoltage_V: "640", pvInput_numMppts: 2, pvInput_mpptVoltageRange_V: "160-950", pvInput_maxInputCurrent_A: 36, pvInput_maxShortCircuitCurrent_A: "N/A",
+                battery_type: "LFP/Lead-acid", battery_voltageRange_V: "40-60", battery_maxChargeCurrent_A: 350, battery_maxDischargeCurrent_A: 350, battery_chargingStrategy: "N/A",
+                acOutput_ratedOutputPower_kW: 20, acOutput_maxApparentPower_VA: 22000, acOutput_ratedVoltage_V: "3W/N/PE, 220/380 V, 230/400 V, 240/415 V", acOutput_ratedFrequency_Hz: "50/60", acOutput_thdi_percent: 3, acOutput_powerFactorRange: "~1 (0.8 lagging to 0.8 leading)",
+                efficiency_max_percent: 97.6, efficiency_euro_percent: 97.0,
+                protections: ["Over/under voltage protection", "DC isolation protection", "DC reverse-polarity protection", "Grid monitoring", "DC injection monitoring", "Back feed current monitoring", "Residual current detection", "Over temperature protection", "Active anti-islanding (Frequency shift)", "Surge protection (DC: Type II AC: Type II)", "Arc-fault circuit interrupter (AFCI) (Optional)"],
+                general_noise_dB: "N/A", general_coolingType: "Smart air cooling", general_topology: "Non-isolated for PV side/HF for battery side", general_operatingTempRange_C: "-25 to +60", general_ipRating: "IP65", general_maxOperatingAltitude_m: 3000, general_humidityRange_percent: "4~100% RH (condensing)", general_standbySelfConsumption_W: "N/A", general_switchoverTime_ms: 3, general_overVoltageCategory: "Mains: III, Battery. II, PVI",
+                communication_interface: "RS485, CAN, USB, DI/DO", communication_monitorMode: "LCD",
+                warranty_years: "N/A"
+            },
+
+            // Solis S6-EH3P(8-15)K02-NV-YD-L
+            {
+                brand: "Solis", model: "S6-EH3P-8K02-NV-YD-L", power: 8,
+                pvInput_maxPvPower_kWp: 12.8, pvInput_maxVoltage_V: 1000, pvInput_ratedVoltage_V: "550", pvInput_numMppts: 2, pvInput_mpptVoltageRange_V: "200-850", pvInput_maxInputCurrent_A: 16, pvInput_maxShortCircuitCurrent_A: 20,
+                battery_type: "Li-ion/Lead-acid", battery_voltageRange_V: "40-60", battery_maxChargeCurrent_A: 180, battery_maxDischargeCurrent_A: 180, battery_chargingStrategy: "N/A",
+                acOutput_ratedOutputPower_kW: 8, acOutput_maxApparentPower_VA: 8000, acOutput_ratedVoltage_V: "3/N/PE, 220V/380V, 3/N/PE, 230V/400V", acOutput_ratedFrequency_Hz: "50/60", acOutput_thdi_percent: 3, acOutput_powerFactorRange: ">0.99 (0.8 leading-0.8 lagging)",
+                efficiency_max_percent: 97.5, efficiency_euro_percent: 97.0,
+                protections: ["Anti-islanding protection", "Output over current protection", "Short circuit protection", "DC reverse-polarity protection", "Surge protection (DC Type II/AC Type II) (Optional)", "Integrated AFCI 2.0 (Optional)", "Integrated DC switch"],
+                general_noise_dB: 65, general_coolingType: "Intelligent fan-cooling", general_topology: "Non-isolated", general_operatingTempRange_C: "-40 to +50", general_ipRating: "IP66", general_maxOperatingAltitude_m: 4000, general_humidityRange_percent: "0-100%", general_standbySelfConsumption_W: 30, general_switchoverTime_ms: 10, general_overVoltageCategory: "AC IIL DC II",
+                communication_interface: "CAN, RS485, Ethernet, Optional: WiFi-, Cellular, LAN", communication_monitorMode: "N/A",
+                warranty_years: "N/A"
+            },
+            {
+                brand: "Solis", model: "S6-EH3P-10K02-NV-YD-L", power: 10,
+                pvInput_maxPvPower_kWp: 16, pvInput_maxVoltage_V: 1000, pvInput_ratedVoltage_V: "550", pvInput_numMppts: 2, pvInput_mpptVoltageRange_V: "200-850", pvInput_maxInputCurrent_A: 16, pvInput_maxShortCircuitCurrent_A: 20,
+                battery_type: "Li-ion/Lead-acid", battery_voltageRange_V: "40-60", battery_maxChargeCurrent_A: 220, battery_maxDischargeCurrent_A: 220, battery_chargingStrategy: "N/A",
+                acOutput_ratedOutputPower_kW: 10, acOutput_maxApparentPower_VA: 10000, acOutput_ratedVoltage_V: "3/N/PE, 220V/380V, 3/N/PE, 230V/400V", acOutput_ratedFrequency_Hz: "50/60", acOutput_thdi_percent: 3, acOutput_powerFactorRange: ">0.99 (0.8 leading-0.8 lagging)",
+                efficiency_max_percent: 97.5, efficiency_euro_percent: 97.0,
+                protections: ["Anti-islanding protection", "Output over current protection", "Short circuit protection", "DC reverse-polarity protection", "Surge protection (DC Type II/AC Type II) (Optional)", "  Integrated AFCI 2.0 (Optional)", "Integrated DC switch"],
+                general_noise_dB: 65, general_coolingType: "Intelligent fan-cooling", general_topology: "Non-isolated", general_operatingTempRange_C: "-40 to +50", general_ipRating: "IP66", general_maxOperatingAltitude_m: 4000, general_humidityRange_percent: "0-100%", general_standbySelfConsumption_W: 30, general_switchoverTime_ms: 10, general_overVoltageCategory: "AC IIL DC II",
+                communication_interface: "CAN, RS485, Ethernet, Optional: WiFi-, Cellular, LAN", communication_monitorMode: "N/A",
+                warranty_years: "N/A"
+            },
+            {
+                brand: "Solis", model: "S6-EH3P-12K02-NV-YD-L", power: 12,
+                pvInput_maxPvPower_kWp: 19.2, pvInput_maxVoltage_V: 1000, pvInput_ratedVoltage_V: "550", pvInput_numMppts: 2, pvInput_mpptVoltageRange_V: "200-850", pvInput_maxInputCurrent_A: 16, pvInput_maxShortCircuitCurrent_A: 20,
+                battery_type: "Li-ion/Lead-acid", battery_voltageRange_V: "40-60", battery_maxChargeCurrent_A: 250, battery_maxDischargeCurrent_A: 250, battery_chargingStrategy: "N/A",
+                acOutput_ratedOutputPower_kW: 12, acOutput_maxApparentPower_VA: 12000, acOutput_ratedVoltage_V: "3/N/PE, 220V/380V, 3/N/PE, 230V/400V", acOutput_ratedFrequency_Hz: "50/60", acOutput_thdi_percent: 3, acOutput_powerFactorRange: ">0.99 (0.8 leading-0.8 lagging)",
+                efficiency_max_percent: 97.5, efficiency_euro_percent: 97.0,
+                protections: ["Anti-islanding protection", "Output over current protection", "Short circuit protection", "DC reverse-polarity protection", "Surge protection (DC Type II/AC Type II) (Optional)", "Integrated AFCI 2.0 (Optional)", "Integrated DC switch"],
+                general_noise_dB: 65, general_coolingType: "Intelligent fan-cooling", general_topology: "Non-isolated", general_operatingTempRange_C: "-40 to +50", general_ipRating: "IP66", general_maxOperatingAltitude_m: 4000, general_humidityRange_percent: "0-100%", general_standbySelfConsumption_W: 30, general_switchoverTime_ms: 10, general_overVoltageCategory: "AC IIL DC II",
+                communication_interface: "CAN, RS485, Ethernet, Optional: WiFi-, Cellular, LAN", communication_monitorMode: "N/A",
+                warranty_years: "N/A"
+            },
+            {
+                brand: "Solis", model: "S6-EH3P-15K02-NV-YD-L", power: 15,
+                pvInput_maxPvPower_kWp: 24, pvInput_maxVoltage_V: 1000, pvInput_ratedVoltage_V: "550", pvInput_numMppts: 2, pvInput_mpptVoltageRange_V: "200-850", pvInput_maxInputCurrent_A: 16, pvInput_maxShortCircuitCurrent_A: 20,
+                battery_type: "Li-ion/Lead-acid", battery_voltageRange_V: "40-60", battery_maxChargeCurrent_A: 290, battery_maxDischargeCurrent_A: 290, battery_chargingStrategy: "N/A",
+                acOutput_ratedOutputPower_kW: 15, acOutput_maxApparentPower_VA: 15000, acOutput_ratedVoltage_V: "3/N/PE, 220V/380V, 3/N/PE, 230V/400V", acOutput_ratedFrequency_Hz: "50/60", acOutput_thdi_percent: 3, acOutput_powerFactorRange: ">0.99 (0.8 leading-0.8 lagging)",
+                efficiency_max_percent: 97.5, efficiency_euro_percent: 97.0,
+                protections: ["Anti-islanding protection", "Output over current protection", "Short circuit protection", "DC reverse-polarity protection", "Surge protection (DC Type II/AC Type II) (Optional)", "Integrated AFCI 2.0 (Optional)", "Integrated DC switch"],
+                general_noise_dB: 65, general_coolingType: "Intelligent fan-cooling", general_topology: "Non-isolated", general_operatingTempRange_C: "-40 to +50", general_ipRating: "IP66", general_maxOperatingAltitude_m: 4000, general_humidityRange_percent: "0-100%", general_standbySelfConsumption_W: 30, general_switchoverTime_ms: 10, general_overVoltageCategory: "AC IIL DC II",
+                communication_interface: "CAN, RS485, Ethernet, Optional: WiFi-, Cellular, LAN", communication_monitorMode: "N/A",
+                warranty_years: "N/A"
+            },
+        ];
+
+        const brandFilter = document.getElementById('brand-filter');
+        const powerFilter = document.getElementById('power-filter');
+        const noDataMessage = document.getElementById('no-data-message');
+        let charts = {};
+
+        const tooltipConfig = {
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        title: function(tooltipItems) {
+                            const item = tooltipItems[0];
+                            let label = item.chart.data.labels[item.dataIndex];
+                            return Array.isArray(label) ? label.join(' ') : label;
+                        }
+                    }
+                }
+            }
+        };
+
+        function init() {
+            const brands = [...new Set(inverters.map(inv => inv.brand))];
+            brands.forEach(brand => {
+                const option = document.createElement('option');
+                option.value = brand;
+                option.textContent = brand;
+                brandFilter.appendChild(option);
+            });
+
+            const powerRatings = [...new Set(inverters.map(inv => inv.power))].sort((a, b) => a - b);
+            powerRatings.forEach(power => {
+                const option = document.createElement('option');
+                option.value = power;
+                option.textContent = `${power} kW`;
+                powerFilter.appendChild(option);
+            });
+
+            const chartIds = [
+                'ratedPowerChart', 'pvInputChart', 'batteryCurrentChart', 'efficiencyChart',
+                'pvMaxVoltageChart', 'pvMaxInputCurrentChart', 'pvMaxShortCircuitCurrentChart', 'pvNumMpptsChart',
+                'acMaxApparentPowerChart', 'acThdiChart',
+                'generalNoiseChart', 'generalAltitudeChart', 'generalSelfConsumptionChart', 'generalSwitchoverTimeChart'
+            ];
+
+            chartIds.forEach(id => {
+                const ctx = document.getElementById(id).getContext('2d');
+                charts[id] = new Chart(ctx, {
+                    type: id === 'efficiencyChart' ? 'bar' : 'bar', // All bar for simplicity and clear comparison
+                    data: { labels: [], datasets: [] },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: id === 'ratedPowerChart' || id === 'pvNumMpptsChart' ? 'y' : 'x',
+                        scales: { x: { beginAtZero: true }, y: { beginAtZero: true } },
+                        plugins: { legend: { display: false }, ...tooltipConfig }
+                    }
+                });
+            });
+
+            brandFilter.addEventListener('change', updateDashboard);
+            powerFilter.addEventListener('change', updateDashboard);
+
+            updateDashboard();
+        }
+
+        function updateDashboard() {
+            const selectedBrand = brandFilter.value;
+            const selectedPower = parseFloat(powerFilter.value);
+
+            let filteredData = inverters.filter(inv => {
+                const brandMatch = selectedBrand === 'all' || inv.brand === selectedBrand;
+                const powerMatch = isNaN(selectedPower) || inv.power === selectedPower;
+                return brandMatch && powerMatch;
+            });
+            
+            if (filteredData.length === 0 && (selectedBrand !== 'all' || !isNaN(selectedPower))) {
+                noDataMessage.classList.remove('hidden');
+                Object.values(charts).forEach(chart => {
+                    chart.data.labels = [];
+                    chart.data.datasets = [];
+                    chart.update();
+                });
+                updateKPIs([]);
+                updateTextDetails({});
+                return;
+            } else {
+                noDataMessage.classList.add('hidden');
+            }
+
+            if (filteredData.length === 0 && selectedBrand === 'all' && isNaN(selectedPower)) {
+                 filteredData = inverters;
+            }
+
+            updateKPIs(filteredData);
+            updateCharts(filteredData);
+            updateTextDetails(filteredData);
+        }
+
+        function parseNumeric(value) {
+            if (typeof value === 'number') return value;
+            if (typeof value !== 'string') return NaN;
+            if (value.toLowerCase().includes('n/a')) return NaN;
+            const matchLess = value.match(/<(\d+(\.\d+)?)/);
+            if (matchLess) return parseFloat(matchLess[1]) - 0.001;
+            const matchGreater = value.match(/>(\d+(\.\d+)?)/);
+            if (matchGreater) return parseFloat(matchGreater[1]) + 0.001;
+            return parseFloat(value);
+        }
+
+        function getRangeSpan(rangeStr) {
+            if (typeof rangeStr !== 'string' || rangeStr.toLowerCase().includes('n/a')) return NaN;
+            const parts = rangeStr.split(' to ').map(Number);
+            return parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1]) ? parts[1] - parts[0] : NaN;
+        }
+
+        function updateKPIs(data) {
+            const findBest = (key, compareFn, formatter = val => val) => {
+                let bestVal = null;
+                let bestModel = 'N/A';
+                data.forEach(item => {
+                    const val = item[key];
+                    const numericVal = parseNumeric(val);
+                    if (!isNaN(numericVal)) {
+                        if (bestVal === null || compareFn(numericVal, bestVal) > 0) {
+                            bestVal = numericVal;
+                            bestModel = item.model;
+                        }
+                    }
+                });
+                return { value: formatter(bestVal), model: bestModel };
+            };
+
+            // Safeguard against null elements if data is empty or elements not found
+            const setKpiText = (idValue, idModel, value, model) => {
+                const elValue = document.getElementById(idValue);
+                const elModel = document.getElementById(idModel);
+                if (elValue) elValue.textContent = value;
+                if (elModel) elModel.textContent = model;
+            };
+
+            const setFlexText = (id, value) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = value;
+            };
+
+
+            const efficiency = findBest('efficiency_max_percent', (a, b) => a - b, val => `${val}%`);
+            setKpiText('kpi-efficiency-value', 'kpi-efficiency-model', efficiency.value, efficiency.model);
+
+            const pvInput = findBest('pvInput_maxPvPower_kWp', (a, b) => a - b, val => `${val} kWp`);
+            setKpiText('kpi-pv-value', 'kpi-pv-model', pvInput.value, pvInput.model);
+
+            const batteryCurrent = findBest('battery_maxChargeCurrent_A', (a, b) => a - b, val => `${val} A`);
+            setKpiText('kpi-battery-value', 'kpi-battery-model', batteryCurrent.value, batteryCurrent.model);
+            
+            const switchover = findBest('general_switchoverTime_ms', (a, b) => {
+                const valA = parseNumeric(a);
+                const valB = parseNumeric(b);
+                if (isNaN(valA) && isNaN(valB)) return 0;
+                if (isNaN(valA)) return 1;
+                if (isNaN(valB)) return -1;
+                return valB - valA;
+            }, val => val !== null && !isNaN(val) ? (String(val).startsWith('<') ? `${val} ms` : `${val} ms`) : 'N/A');
+            setKpiText('kpi-switchover-value', 'kpi-switchover-model', switchover.value, switchover.model);
+
+            // Removed flex-mppt, flex-ip, flex-temp as they were not in the HTML and caused errors.
+            // These KPIs require adding new HTML elements with corresponding IDs for them to work.
+            // const mppt = findBest('pvInput_numMppts', (a, b) => a - b, val => `${val}`);
+            // setFlexText('flex-mppt', `${mppt.value} (${mppt.model.split(' ')[0]})`);
+
+            // const ip = findBest('general_ipRating', (a, b) => {
+            //     const ipA = parseInt(String(a).slice(2));
+            //     const ipB = parseInt(String(b).slice(2));
+            //     return ipA - ipB;
+            // }, val => val);
+            // setFlexText('flex-ip', `${ip.value} (${ip.model.split(' ')[0]})`);
+            
+            // const tempRange = findBest('general_operatingTempRange_C', (a, b) => getRangeSpan(a) - getRangeSpan(b), val => val !== null ? `${val}°C` : 'N/A');
+            // setFlexText('flex-temp', `${tempRange.value} (${tempRange.model.split(' ')[0]})`);
+        }
+
+
+        function updateCharts(data) {
+            const labels = data.map(inv => `${inv.brand} ${inv.model.split('-')[0]}`);
+            const primaryColor = '#E07A5F';
+            const secondaryColor = '#81B29A';
+            const tertiaryColor = '#3D405B';
+            const quaternaryColor = '#F2CC8F';
+
+            // Rated AC Power Chart
+            charts.ratedPowerChart.data.labels = labels;
+            charts.ratedPowerChart.data.datasets = [{
+                label: 'Rated Power (kW)',
+                data: data.map(inv => inv.power),
+                backgroundColor: primaryColor,
+            }];
+            charts.ratedPowerChart.update();
+
+            // Max PV Input Power Chart
+            charts.pvInputChart.data.labels = labels;
+            charts.pvInputChart.data.datasets = [{
+                label: 'Max PV Input (kWp)',
+                data: data.map(inv => inv.pvInput_maxPvPower_kWp),
+                backgroundColor: secondaryColor,
+            }];
+            charts.pvInputChart.update();
+
+            // Battery Current Chart (Stacked for charge/discharge)
+            charts.batteryCurrentChart.data.labels = labels;
+            charts.batteryCurrentChart.data.datasets = [
+                {
+                    label: 'Max Charge Current (A)',
+                    data: data.map(inv => inv.battery_maxChargeCurrent_A),
+                    backgroundColor: tertiaryColor,
+                },
+                {
+                    label: 'Max Discharge Current (A)',
+                    data: data.map(inv => inv.battery_maxDischargeCurrent_A),
+                    backgroundColor: quaternaryColor,
+                }
+            ];
+            charts.batteryCurrentChart.options.scales.x.stacked = true;
+            charts.batteryCurrentChart.options.scales.y.stacked = true;
+            charts.batteryCurrentChart.options.plugins.legend.display = true;
+            charts.batteryCurrentChart.update();
+
+            // Efficiency Chart
+            charts.efficiencyChart.data.labels = labels;
+            charts.efficiencyChart.data.datasets = [
+                {
+                    label: 'Max Efficiency (%)',
+                    data: data.map(inv => inv.efficiency_max_percent),
+                    backgroundColor: primaryColor,
+                },
+                {
+                    label: 'Euro Efficiency (%)',
+                    data: data.map(inv => inv.efficiency_euro_percent),
+                    backgroundColor: secondaryColor,
+                }
+            ];
+            charts.efficiencyChart.options.plugins.legend.display = true;
+            charts.efficiencyChart.update();
+
+            // PV Max Voltage Chart
+            charts.pvMaxVoltageChart.data.labels = labels;
+            charts.pvMaxVoltageChart.data.datasets = [{
+                label: 'Max PV Voltage (V)',
+                data: data.map(inv => inv.pvInput_maxVoltage_V),
+                backgroundColor: tertiaryColor,
+            }];
+            charts.pvMaxVoltageChart.update();
+
+            // PV Max Input Current Chart
+            charts.pvMaxInputCurrentChart.data.labels = labels;
+            charts.pvMaxInputCurrentChart.data.datasets = [{
+                label: 'Max PV Input Current (A)',
+                data: data.map(inv => inv.pvInput_maxInputCurrent_A),
+                backgroundColor: quaternaryColor,
+            }];
+            charts.pvMaxInputCurrentChart.update();
+
+            // PV Max Short Circuit Current Chart
+            charts.pvMaxShortCircuitCurrentChart.data.labels = labels;
+            charts.pvMaxShortCircuitCurrentChart.data.datasets = [{
+                label: 'Max PV Short Circuit Current (A)',
+                data: data.map(inv => inv.pvInput_maxShortCircuitCurrent_A),
+                backgroundColor: primaryColor,
+            }];
+            charts.pvMaxShortCircuitCurrentChart.update();
+
+            // PV Number of MPPTs Chart
+            charts.pvNumMpptsChart.data.labels = labels;
+            charts.pvNumMpptsChart.data.datasets = [{
+                label: 'Number of MPPTs',
+                data: data.map(inv => inv.pvInput_numMppts),
+                backgroundColor: secondaryColor,
+            }];
+            charts.pvNumMpptsChart.update();
+
+            // AC Max Apparent Power Chart
+            charts.acMaxApparentPowerChart.data.labels = labels;
+            charts.acMaxApparentPowerChart.data.datasets = [{
+                label: 'Max Apparent Power (VA)',
+                data: data.map(inv => inv.acOutput_maxApparentPower_VA),
+                backgroundColor: tertiaryColor,
+            }];
+            charts.acMaxApparentPowerChart.update();
+
+            // AC THDi Chart
+            charts.acThdiChart.data.labels = labels;
+            charts.acThdiChart.data.datasets = [{
+                label: 'THDi (%)',
+                data: data.map(inv => inv.acOutput_thdi_percent),
+                backgroundColor: quaternaryColor,
+            }];
+            charts.acThdiChart.update();
+
+            // General Noise Chart
+            charts.generalNoiseChart.data.labels = labels;
+            charts.generalNoiseChart.data.datasets = [{
+                label: 'Noise (dB)',
+                data: data.map(inv => parseNumeric(inv.general_noise_dB)),
+                backgroundColor: primaryColor,
+            }];
+            charts.generalNoiseChart.update();
+
+            // General Altitude Chart
+            charts.generalAltitudeChart.data.labels = labels;
+            charts.generalAltitudeChart.data.datasets = [{
+                label: 'Max Operating Altitude (m)',
+                data: data.map(inv => inv.general_maxOperatingAltitude_m),
+                backgroundColor: secondaryColor,
+            }];
+            charts.generalAltitudeChart.update();
+
+            // General Self-consumption Chart
+            charts.generalSelfConsumptionChart.data.labels = labels;
+            charts.generalSelfConsumptionChart.data.datasets = [{
+                label: 'Standby Self-consumption (W)',
+                data: data.map(inv => parseNumeric(inv.general_standbySelfConsumption_W)),
+                backgroundColor: tertiaryColor,
+            }];
+            charts.generalSelfConsumptionChart.update();
+
+            // General Switchover Time Chart
+            charts.generalSwitchoverTimeChart.data.labels = labels;
+            charts.generalSwitchoverTimeChart.data.datasets = [{
+                label: 'Switchover Time (ms)',
+                data: data.map(inv => parseNumeric(inv.general_switchoverTime_ms)),
+                backgroundColor: quaternaryColor,
+            }];
+            charts.generalSwitchoverTimeChart.update();
+        }
+
+        function updateTextDetails(data) {
+            const firstInv = data.length > 0 ? data[0] : {}; // Display details for the first matching inverter
+
+            const setTextContent = (id, value) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = value || 'N/A';
+            };
+
+            setTextContent('pv-rated-voltage', firstInv.pvInput_ratedVoltage_V);
+            setTextContent('pv-mppt-range', firstInv.pvInput_mpptVoltageRange_V);
+
+            setTextContent('battery-type', firstInv.battery_type);
+            setTextContent('battery-voltage-range', firstInv.battery_voltageRange_V);
+            setTextContent('battery-charging-strategy', firstInv.battery_chargingStrategy);
+
+            const protectionsList = document.getElementById('protections-list');
+            if (protectionsList) {
+                protectionsList.innerHTML = '';
+                if (firstInv.protections && Array.isArray(firstInv.protections)) {
+                    firstInv.protections.forEach(p => {
+                        const li = document.createElement('li');
+                        li.textContent = p;
+                        protectionsList.appendChild(li);
+                    });
+                } else {
+                    const li = document.createElement('li');
+                    li.textContent = 'N/A';
+                    protectionsList.appendChild(li);
+                }
+            }
+
+            setTextContent('ac-rated-voltage', firstInv.acOutput_ratedVoltage_V);
+            setTextContent('ac-rated-frequency', firstInv.acOutput_ratedFrequency_Hz);
+            setTextContent('ac-power-factor-range', firstInv.acOutput_powerFactorRange);
+
+            setTextContent('general-cooling-type', firstInv.general_coolingType);
+            setTextContent('general-topology', firstInv.general_topology);
+            setTextContent('general-temp-range', firstInv.general_operatingTempRange_C);
+            setTextContent('general-humidity-range', firstInv.general_humidityRange_percent);
+            setTextContent('general-overvoltage-category', firstInv.general_overVoltageCategory);
+
+            setTextContent('communication-interface', firstInv.communication_interface);
+            setTextContent('communication-monitor-mode', firstInv.communication_monitorMode);
+            setTextContent('warranty-years', firstInv.warranty_years);
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
